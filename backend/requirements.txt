@@ -12,3 +12,5 @@ python-multipart==0.0.9
 alembic==1.13.1
 sentence-transformers==3.0.1
 psycopg[binary]==3.2.9
+requests==2.32.3
+beautifulsoup4==4.12.3

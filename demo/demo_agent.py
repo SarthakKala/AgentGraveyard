@@ -1,4 +1,9 @@
-from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sdk.agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
 import requests
 from bs4 import BeautifulSoup
 
@@ -12,7 +17,14 @@ def scrape_prices(url: str) -> list[str]:
         print(f"Agent received wisdom: {wisdom[:120]}...")
     response = requests.get(url, timeout=15)
     soup = BeautifulSoup(response.text, "html.parser")
+
+    # Intentional "bad first strategy" for demo: this fails often.
     prices = soup.find_all(class_="price")
+
+    # If wisdom exists, adapt strategy with a better selector.
+    if not prices and wisdom:
+        prices = soup.select("p.price_color")
+
     if not prices:
         raise ValueError("No prices found - page may require JavaScript rendering")
     return [p.get_text(strip=True) for p in prices]
