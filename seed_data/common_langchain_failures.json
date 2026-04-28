@@ -1,0 +1,32 @@
+[
+  {
+    "task_description": "Scrape data from a React single-page application",
+    "failure_reason": "Static HTTP requests cannot access content rendered by JavaScript frameworks",
+    "error_type": "EmptyResponseError",
+    "lesson": "React/Vue/Angular SPAs require browser automation for scraping",
+    "suggested_approach": "Use Playwright or Selenium instead of requests/BeautifulSoup",
+    "failure_category": "TOOL_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  },
+  {
+    "task_description": "Run LangGraph tool call with malformed JSON output",
+    "failure_reason": "Tool parser failed due to invalid escaped quotes in model output",
+    "error_type": "ToolParsingError",
+    "lesson": "Enforce strict JSON mode and schema validation before tool execution",
+    "suggested_approach": "Use structured output parser with retries and validation",
+    "failure_category": "DATA_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  },
+  {
+    "task_description": "Agent loops endlessly in reflection step",
+    "failure_reason": "No max-iteration guard caused repeated self-critique cycle",
+    "error_type": "IterationOverflowError",
+    "lesson": "Always set iteration limits in graph loops",
+    "suggested_approach": "Set max steps and add early exit conditions",
+    "failure_category": "REASONING_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  }
+]

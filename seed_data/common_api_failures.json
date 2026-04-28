@@ -1,0 +1,32 @@
+[
+  {
+    "task_description": "Call OpenAI API with a very long document",
+    "failure_reason": "Input exceeded model context window limit",
+    "error_type": "ContextLengthExceededError",
+    "lesson": "Always check token count before sending to LLM API",
+    "suggested_approach": "Chunk the document and process in batches, or summarize first",
+    "failure_category": "DATA_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  },
+  {
+    "task_description": "Connect to third-party API with missing bearer token",
+    "failure_reason": "Authorization header was not included in request",
+    "error_type": "AuthenticationError",
+    "lesson": "Validate auth configuration at startup before first request",
+    "suggested_approach": "Use config validation and fail fast with explicit diagnostics",
+    "failure_category": "ENVIRONMENT_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  },
+  {
+    "task_description": "Execute API batch calls under high load",
+    "failure_reason": "Burst traffic triggered 429 responses due to missing backoff",
+    "error_type": "RateLimitError",
+    "lesson": "API integrations require adaptive retry and jitter",
+    "suggested_approach": "Implement exponential backoff with random jitter and circuit breaker",
+    "failure_category": "TOOL_FAILURE",
+    "is_community_shared": true,
+    "agent_name": "community"
+  }
+]
