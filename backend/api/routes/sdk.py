@@ -50,7 +50,14 @@ async def ingest_event(event: SDKEvent, db: Session = Depends(get_db)):
         db.commit()
         await broadcast_event(
             event.api_key_hash,
-            {"event_type": "AGENT_STARTED", "session_id": event.session_id, "agent_name": event.agent_name},
+            {
+                "event_type": "AGENT_STARTED",
+                "session_id": event.session_id,
+                "agent_name": event.agent_name,
+                "task_description": event.task_description,
+                "timestamp": event.timestamp.isoformat(),
+                "payload": {},
+            },
         )
     elif event.event_type == "TASK_SUCCESS":
         success = SuccessMemory(
@@ -66,7 +73,17 @@ async def ingest_event(event: SDKEvent, db: Session = Depends(get_db)):
             session.status = "SUCCESS"
             session.ended_at = datetime.utcnow()
         db.commit()
-        await broadcast_event(event.api_key_hash, {"event_type": "AGENT_SUCCEEDED", "session_id": event.session_id})
+        await broadcast_event(
+            event.api_key_hash,
+            {
+                "event_type": "AGENT_SUCCEEDED",
+                "session_id": event.session_id,
+                "agent_name": event.agent_name,
+                "task_description": event.task_description,
+                "timestamp": event.timestamp.isoformat(),
+                "payload": {},
+            },
+        )
     elif event.event_type == "TASK_FAILURE":
         state = await run_coroner(
             task_description=event.task_description,
@@ -90,8 +107,41 @@ async def ingest_event(event: SDKEvent, db: Session = Depends(get_db)):
             {
                 "event_type": "CORONER_COMPLETE",
                 "session_id": event.session_id,
+                "agent_name": event.agent_name,
+                "task_description": event.task_description,
+                "timestamp": event.timestamp.isoformat(),
                 "failure_id": state["failure_id"],
                 "self_heal_succeeded": heal.succeeded,
+                "payload": {"failure_id": state["failure_id"], "self_heal_succeeded": heal.succeeded},
+            },
+        )
+    elif event.event_type == "TASK_SELF_HEAL":
+        failure_id = event.payload.get("failure_id")
+        synthesized_solution = event.payload.get("synthesized_solution", "")
+
+        if not isinstance(failure_id, str) or not failure_id.strip():
+            return {"ok": False, "error": "Missing/invalid failure_id in payload"}
+
+        heal = await attempt_self_heal(
+            original_task=event.task_description,
+            synthesized_solution=synthesized_solution,
+            failure_id=failure_id,
+            agent_name=event.agent_name,
+            api_key_hash=event.api_key_hash,
+            db=db,
+        )
+
+        await broadcast_event(
+            event.api_key_hash,
+            {
+                "event_type": "SELF_HEAL_COMPLETE",
+                "session_id": event.session_id,
+                "agent_name": event.agent_name,
+                "task_description": event.task_description,
+                "timestamp": event.timestamp.isoformat(),
+                "failure_id": failure_id,
+                "self_heal_succeeded": heal.succeeded,
+                "payload": {"failure_id": failure_id, "self_heal_succeeded": heal.succeeded},
             },
         )
     return {"ok": True}

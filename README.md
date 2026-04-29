@@ -1,54 +1,74 @@
-# Agent Graveyard
+# Agent Graveyard (SDK-First Mode)
 
-Self-healing failure memory system for AI agents.
+Self-healing failure memory system for AI agents, designed to run primarily through Python SDK + backend API.
 
-## The Problem
-Production agents repeatedly fail in similar ways, but each run starts cold and re-learns the same lessons. Teams lose time to recurring tool errors, prompt failures, and brittle integrations.
+## Why SDK-first
+Production agents often repeat the same failures. Agent Graveyard captures those incidents as reusable memory and injects warnings before future runs.
 
-Agent Graveyard solves this by turning every failure into reusable memory. A Coroner Agent diagnoses the failure, stores a structured autopsy + embedding, synthesizes a fix from similar incidents, and attempts autonomous self-healing.
+Core value is in:
+- automatic event capture from your code
+- centralized failure memory store
+- pre-task wisdom retrieval
+- terminal-first visibility via colored logs
 
-## Architecture
+## Core Architecture
+```text
+Your Python Agent
+  -> GraveyardWrapper decorator
+    -> Backend API (FastAPI)
+      -> Coroner + synthesis pipeline (OpenRouter)
+      -> SQL memory + Pinecone vectors (+ local BGE embeddings)
 ```
-SDK Decorator -> Backend API -> Coroner Pipeline -> SQLite + Pinecone
-      ^                                              |
-      |---------------- Wisdom Injection <-----------|
-```
 
-## Demo GIF
-_Coming soon_
+## Quick Start
 
-## How It Works
-1. Pre-task wisdom query: retrieve similar failures before execution.
-2. Failure autopsy: classify, diagnose, synthesize, and store knowledge.
-3. Self-heal loop: retry with synthesized approach and store outcomes.
-
-## SDK Install
+### 1) Start backend
 ```bash
-pip install agent-graveyard
+cd backend
+python -m uvicorn main:app --reload --port 8000
 ```
 
+### 2) Seed shared memory
+From project root:
+```bash
+python seed_data/seed.py --force
+```
+
+### 3) Use SDK in your code
 ```python
-from agentgraveyard import GraveyardWrapper
-graveyard = GraveyardWrapper(api_key="your-key")
+from sdk.agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
+
+graveyard = GraveyardWrapper(
+    api_key="your-api-key-or-hash",
+    backend_url="http://localhost:8000",
+    verbose=True,
+)
+
 @graveyard.watch
-def run(task: str):
-    return f"running {task}"
+def run_agent(task: str):
+    wisdom = get_wisdom_prompt_prefix()
+    if wisdom:
+        print("Wisdom injected:\n", wisdom)
+    # your agent logic...
+    return "ok"
 ```
 
-## Dashboard
-_Screenshot placeholder_
+## Terminal CLI (optional but recommended)
+After installing SDK package locally, you can use:
+```bash
+graveyard health --backend-url http://localhost:8000
+graveyard overview --backend-url http://localhost:8000 --api-key community
+graveyard recent --backend-url http://localhost:8000 --api-key community --limit 10
+graveyard wisdom --backend-url http://localhost:8000 --api-key community --task "scrape dynamic prices"
+```
 
 ## Tech Stack
 - Backend: FastAPI, SQLAlchemy, LangGraph
-- Memory: Pinecone + local free embeddings (`BAAI/bge-base-en-v1.5`, 768-dim)
-- LLM: OpenRouter (single provider for reasoning/coroner synthesis)
-- SDK: Python package
-- Frontend: Next.js + Tailwind + Recharts
+- LLM reasoning: OpenRouter
+- Embeddings: local `BAAI/bge-base-en-v1.5` (768 dim)
+- Vector memory: Pinecone
+- SDK: Python + Rich terminal logs
 
-## Self-Hosting
-1. Configure `backend/.env.example` values in `.env`.
-2. Run backend and dashboard via Docker Compose.
-3. Seed community failures with `python seed_data/seed.py`.
-
-## Contributing
-Issues and PRs are welcome. Keep changes scoped by stage (`1.x`, `2.x`, `3.x`, `4.x`) to align with project milestones.
+## Notes
+- API key handling in this repo currently uses `api_key_hash` semantics in endpoints.
+- For true multi-tenant production use, enforce hashing + auth middleware server-side.

@@ -1,4 +1,5 @@
 from rich.console import Console
+from rich.panel import Panel
 
 
 class GraveyardLogger:
@@ -10,36 +11,40 @@ class GraveyardLogger:
         if self.verbose:
             self.console.print(f"[AgentGraveyard] {text}", style=style)
 
+    def banner(self, title: str, body: str, style: str = "cyan") -> None:
+        if self.verbose:
+            self.console.print(Panel(body, title=title, border_style=style))
+
     def log_wisdom_scan(self):
-        self._log("Pre-task wisdom scan...", "cyan")
+        self._log("Pre-task wisdom scan...", "bright_cyan")
 
     def log_wisdom_found(self, count: int, confidence: float):
-        self._log(f"{count} similar failures found", "yellow")
-        self._log(f"Wisdom injected (confidence: {confidence:.0%})", "green")
+        self._log(f"{count} similar failures found", "bright_yellow")
+        self._log(f"Wisdom injected (confidence: {confidence:.0%})", "bright_green")
 
     def log_no_warnings(self):
-        self._log("No warnings found.", "dim")
+        self._log("No warnings found.", "grey62")
 
     def log_agent_success(self, execution_time_ms: int):
-        self._log(f"Agent succeeded in {execution_time_ms}ms", "green")
+        self._log(f"Agent succeeded in {execution_time_ms}ms", "bright_green")
 
     def log_agent_failure(self, error_type: str, error_message: str):
-        self._log(f"Agent FAILED: {error_type} - {error_message}", "red")
+        self._log(f"Agent FAILED: {error_type} - {error_message}", "bright_red")
 
     def log_coroner_started(self):
-        self._log("Coroner Agent diagnosing...", "magenta")
+        self._log("Coroner Agent diagnosing...", "bright_magenta")
 
     def log_coroner_complete(self, lesson: str):
-        self._log(f"Autopsy complete: {lesson}", "magenta")
+        self._log(f"Autopsy complete: {lesson}", "bright_magenta")
 
     def log_self_heal_started(self):
-        self._log("Self-heal attempt starting...", "cyan")
+        self._log("Self-heal attempt starting...", "bright_cyan")
 
     def log_self_heal_success(self):
-        self._log("Self-heal SUCCEEDED", "bold green")
+        self._log("Self-heal SUCCEEDED", "bold bright_green")
 
     def log_self_heal_failed(self):
-        self._log("Self-heal FAILED. New tombstone.", "bold red")
+        self._log("Self-heal FAILED. New tombstone.", "bold bright_red")
 
     def log_dashboard_url(self, failure_id: str, base_url: str):
-        self._log(f"View full report: {base_url}/failure/{failure_id}", "blue")
+        self._log(f"Web report (optional): {base_url}/failure/{failure_id}", "bright_blue")
