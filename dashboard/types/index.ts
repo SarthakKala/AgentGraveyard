@@ -1,3 +1,10 @@
+export type FailureCategory =
+  | "TOOL_FAILURE"
+  | "PROMPT_FAILURE"
+  | "DATA_FAILURE"
+  | "ENVIRONMENT_FAILURE"
+  | "REASONING_FAILURE";
+
 export interface FailureMemory {
   id: string;
   task_description: string;
@@ -7,12 +14,13 @@ export interface FailureMemory {
   error_type: string;
   lesson: string;
   suggested_approach: string;
-  failure_category: "TOOL_FAILURE" | "PROMPT_FAILURE" | "DATA_FAILURE" | "ENVIRONMENT_FAILURE" | "REASONING_FAILURE";
+  failure_category: FailureCategory;
   times_occurred: number;
   resolved_eventually: boolean;
   self_heal_attempted: boolean;
   self_heal_succeeded: boolean;
   is_community_shared: boolean;
+  similarity_score?: number;
   created_at: string;
 }
 
@@ -33,4 +41,9 @@ export interface LiveEvent {
   task_description: string;
   timestamp: string;
   payload: Record<string, unknown>;
+}
+
+export interface CategoryCount {
+  category: FailureCategory;
+  count: number;
 }

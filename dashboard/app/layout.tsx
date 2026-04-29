@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-bg text-slate-100 min-h-screen">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
