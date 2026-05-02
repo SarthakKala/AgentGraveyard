@@ -1,8 +1,18 @@
+import os
+
 from memory.embeddings import generate_task_embedding
 from memory.pinecone_client import query_similar_failures
 from memory.schemas import SimilarFailure, WisdomBriefing
 
 from .solution_synthesizer import synthesize_solution
+
+
+def _similarity_threshold() -> float:
+    raw = os.getenv("WISDOM_SIMILARITY_THRESHOLD", "0.70").strip()
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.70
 
 
 async def get_wisdom_briefing(
@@ -28,11 +38,19 @@ async def get_wisdom_briefing(
                 times_occurred=int(md.get("times_occurred", 1)),
             )
         )
-    if not similar_failures or similar_failures[0].similarity_score < 0.70:
+    threshold = _similarity_threshold()
+    if not similar_failures or similar_failures[0].similarity_score < threshold:
+        top = similar_failures[0].similarity_score if similar_failures else None
+        hint = (
+            f"No matches above similarity threshold ({threshold:.2f}). "
+            "Seed more data, lower WISDOM_SIMILARITY_THRESHOLD in backend/.env, or broaden the task text."
+        )
+        if top is not None:
+            hint += f" Best match score was {top:.2f}."
         return WisdomBriefing(
             has_warnings=False,
             similar_failures=[],
-            synthesized_recommendation="No similar high-confidence failures found.",
+            synthesized_recommendation=hint,
             confidence_score=0.0,
         )
     recommendation, confidence = synthesize_solution(similar_failures, "Proceed carefully with retries and validation.")

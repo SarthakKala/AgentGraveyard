@@ -1,50 +1,49 @@
-AGENT_GRAVEYARD_BLUEPRINT.md
-DASHBOARD_DESIGN_BLUEPRINT.md
-
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Virtual environments
+*.egg-info/
+dist/
+build/
 .venv/
 venv/
 env/
+*.pyc
 
-# Environment files / secrets
+# Environment files — NEVER commit these
 .env
-.env.*
-!.env.example
+.env.local
+backend/.env
 
-# Build artifacts
-build/
-dist/
-*.egg-info/
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Model cache (sentence-transformers downloads here)
+.cache/
+**/.cache/
+
+# Agent Graveyard runtime
+.agentgraveyard/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Logs
 *.log
 
-# SQLite
-*.db
-*.sqlite3
-
-# Node / Next.js
+# Node (if you add a frontend later)
 node_modules/
 .next/
 out/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# IDE / OS
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/

@@ -22,6 +22,7 @@ async def attempt_self_heal(
     db: Session,
 ) -> SelfHealResult:
     started = time.perf_counter()
+    # Does NOT re-run user tools or verify the task — only records whether we had a non-empty strategy.
     succeeded = bool(synthesized_solution.strip())
     elapsed = int((time.perf_counter() - started) * 1000)
     failure = db.query(FailureMemory).filter(FailureMemory.id == failure_id).first()
@@ -36,7 +37,10 @@ async def attempt_self_heal(
     failure.self_heal_succeeded = succeeded
     if succeeded:
         failure.resolved_eventually = True
-        failure.resolution_description = "Self-heal applied synthesized strategy."
+        failure.resolution_description = (
+            "Recorded synthesized remediation text (heuristic). "
+            "Does not prove the original agent task was re-executed successfully."
+        )
         success = SuccessMemory(
             task_description=original_task,
             agent_name=agent_name,
@@ -53,5 +57,5 @@ async def attempt_self_heal(
         succeeded=succeeded,
         approach_used=synthesized_solution,
         execution_time_ms=elapsed,
-        error_if_failed=None if succeeded else "Self-heal strategy execution failed",
+        error_if_failed=None if succeeded else "No synthesized remediation text to record",
     )

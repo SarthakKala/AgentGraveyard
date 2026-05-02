@@ -26,6 +26,20 @@ def my_agent(task: str) -> str:
     return f"Result for: {prompt}"
 ```
 
+### Task text for wisdom / events
+
+The wrapper needs a **human-readable task string** for wisdom queries and backend events. Resolution order:
+
+1. If you passed `GraveyardWrapper(task_param="my_task")`, the keyword argument **`my_task`** is used when present.
+2. Otherwise **`task_description=`** or **`task=`** in the wrapped call.
+3. Otherwise the **first positional argument** — with a **warning** if there are multiple positional args and no explicit task keyword.
+
+For non-trivial signatures, prefer **`task_description=`** or **`task=`** (or set **`task_param`**) so wisdom never picks the wrong argument.
+
+### Wisdom is not auto-injected
+
+`get_wisdom_prompt_prefix()` returns text you should **merge into your prompt** (prepend or concatenate). The SDK does not silently change model inputs unless your code uses that string.
+
 ## Async
 
 ```python

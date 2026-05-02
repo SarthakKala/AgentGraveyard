@@ -20,7 +20,10 @@ class GraveyardLogger:
 
     def log_wisdom_found(self, count: int, confidence: float):
         self._log(f"{count} similar failures found", "bright_yellow")
-        self._log(f"Wisdom injected (confidence: {confidence:.0%})", "bright_green")
+        self._log(
+            f"Wisdom briefing ready (confidence: {confidence:.0%}) — prepend get_wisdom_prompt_prefix() to your model input.",
+            "bright_green",
+        )
 
     def log_no_warnings(self):
         self._log("No warnings found.", "grey62")
@@ -38,13 +41,16 @@ class GraveyardLogger:
         self._log(f"Autopsy complete: {lesson}", "bright_magenta")
 
     def log_self_heal_started(self):
-        self._log("Self-heal attempt starting...", "bright_cyan")
+        self._log("Recording synthesized remediation (backend self-heal step)...", "bright_cyan")
 
     def log_self_heal_success(self):
-        self._log("Self-heal SUCCEEDED", "bold bright_green")
+        self._log(
+            "Remediation text recorded (does not re-run your agent or tools)",
+            "bold bright_green",
+        )
 
     def log_self_heal_failed(self):
-        self._log("Self-heal FAILED. New tombstone.", "bold bright_red")
+        self._log("No remediation text recorded for self-heal step.", "bold bright_red")
 
     def log_failure_id(self, failure_id: str, backend_url: str = "") -> None:
         hint = f" — query: graveyard recent ... (backend {backend_url})" if backend_url else ""
