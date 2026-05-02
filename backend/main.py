@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import analytics_router, failures_router, sdk_router, wisdom_router
 from api.websocket import router as websocket_router
-from db.database import Base, engine
-from memory.pinecone_client import initialize_pinecone
+from db.database import Base, database_health_check, engine
+from memory.pinecone_client import initialize_pinecone, pinecone_health_check
 
-app = FastAPI(title="Agent Graveyard API", version="0.1.0")
+API_VERSION = "0.1.1"
+
+app = FastAPI(title="Agent Graveyard API", version=API_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,4 +33,19 @@ def startup() -> None:
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    db_h = database_health_check()
+    pc_h = pinecone_health_check()
+    if not db_h["ok"]:
+        overall = "unhealthy"
+    elif not pc_h["ok"]:
+        overall = "degraded"
+    else:
+        overall = "ok"
+    return {
+        "status": overall,
+        "version": API_VERSION,
+        "checks": {
+            "database": {"ok": db_h["ok"], "detail": db_h["detail"]},
+            "pinecone": {"ok": pc_h["ok"], "detail": pc_h["detail"]},
+        },
+    }

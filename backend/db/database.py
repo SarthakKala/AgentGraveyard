@@ -1,7 +1,8 @@
 import os
+from typing import Any
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
@@ -42,3 +43,12 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def database_health_check() -> dict[str, Any]:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"ok": True, "detail": None}
+    except Exception as exc:
+        return {"ok": False, "detail": str(exc)}

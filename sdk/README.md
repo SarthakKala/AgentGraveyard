@@ -1,23 +1,32 @@
-## Quick Start
+# agent-graveyard (Python SDK)
 
-pip install agent-graveyard
+Self-healing failure memory for AI agents: wrap functions with `@graveyard.watch`, query wisdom before tasks, and use the **`graveyard` CLI** for visibility.
 
-## Basic Usage (3 lines of integration)
+## Install
+
+From the repository root (editable dev install):
+
+```bash
+pip install -e ./sdk
+```
+
+This exposes the `graveyard` console script.
+
+## Quick integration
 
 ```python
 from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
 
-graveyard = GraveyardWrapper(api_key="your-key-here")
+graveyard = GraveyardWrapper(api_key="your-key-here", backend_url="http://localhost:8000", verbose=True)
 
 @graveyard.watch
 def my_agent(task: str) -> str:
     wisdom = get_wisdom_prompt_prefix()
-    prompt = wisdom + f"Complete this task: {task}"
-    result = f"Stub agent output for: {prompt}"
-    return result
+    prompt = (wisdom or "") + f"Complete this task: {task}"
+    return f"Result for: {prompt}"
 ```
 
-## Async Support
+## Async
 
 ```python
 @graveyard.watch_async
@@ -25,9 +34,22 @@ async def my_async_agent(task: str) -> str:
     return "ok"
 ```
 
-## Manual Wisdom Query
+## Manual wisdom query
 
 ```python
 wisdom = await graveyard.query_wisdom("scrape data from e-commerce site")
 print(wisdom["wisdom"]["synthesized_recommendation"])
 ```
+
+## CLI
+
+`--backend-url` and `--json` may appear before or after the subcommand:
+
+```bash
+graveyard --backend-url http://localhost:8000 doctor
+graveyard doctor --backend-url http://localhost:8000
+graveyard recent --api-key community --limit 10 --backend-url http://localhost:8000
+graveyard --json health
+```
+
+See `graveyard --help` and the main repository `README.md` for the full verification checklist.

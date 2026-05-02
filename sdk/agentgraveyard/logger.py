@@ -46,5 +46,6 @@ class GraveyardLogger:
     def log_self_heal_failed(self):
         self._log("Self-heal FAILED. New tombstone.", "bold bright_red")
 
-    def log_dashboard_url(self, failure_id: str, base_url: str):
-        self._log(f"Web report (optional): {base_url}/failure/{failure_id}", "bright_blue")
+    def log_failure_id(self, failure_id: str, backend_url: str = "") -> None:
+        hint = f" — query: graveyard recent ... (backend {backend_url})" if backend_url else ""
+        self._log(f"Recorded failure id={failure_id}{hint}", "bright_blue")

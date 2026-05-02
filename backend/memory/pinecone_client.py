@@ -56,3 +56,18 @@ def update_failure_metadata(failure_id: str, metadata_updates: dict) -> None:
 def delete_failure(failure_id: str) -> None:
     initialize_pinecone()
     _index.delete(ids=[failure_id])
+
+
+def pinecone_health_check() -> dict[str, Any]:
+    """Lightweight connectivity check for /health (after startup, index should exist)."""
+    api_key = os.getenv("PINECONE_API_KEY", "").strip()
+    if not api_key:
+        return {"ok": False, "detail": "PINECONE_API_KEY is not set"}
+    try:
+        initialize_pinecone()
+        if _index is None:
+            return {"ok": False, "detail": "Pinecone index not initialized"}
+        _index.describe_index_stats()
+        return {"ok": True, "detail": None}
+    except Exception as exc:
+        return {"ok": False, "detail": str(exc)}

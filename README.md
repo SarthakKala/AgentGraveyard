@@ -1,88 +1,119 @@
 # AgentGraveyard
 
-AgentGraveyard is a self-healing failure memory system for AI agents. The problem it solves is simple but annoying: production agents repeat the same failures over and over because they have no memory of what went wrong before. AgentGraveyard fixes that — it captures every failure your agent hits, synthesizes it into a structured incident, stores it in a vector database, and injects relevant warnings directly into the agent's prompt before future runs. Your agent learns from its own graveyard.
+AgentGraveyard is a self-healing failure memory system for AI agents. Production agents often repeat the same failures because they have no durable memory of what went wrong. AgentGraveyard captures failures, turns them into structured incidents, stores embeddings in Pinecone, and can inject relevant warnings into the prompt before the next run. **This repo is optimized for SDK-first / terminal workflows** (Python decorator + CLI); there is no bundled web dashboard.
 
 ---
 
-## 🛠️ Technologies
+## Prerequisites
 
-- Python (SDK + Backend)
-- FastAPI (Backend API)
-- LangGraph (Synthesis pipeline)
-- SQLAlchemy (SQL memory store)
-- Pinecone (Vector memory)
-- BAAI/bge-base-en-v1.5 (Local embeddings, 768 dim)
-- OpenRouter (LLM reasoning)
-- Docker + Docker Compose
-- Rich (Terminal CLI logs)
+- **Python 3.11+** (64-bit recommended; avoids older wheels building NumPy from source).
+- **Accounts / keys:** Neon (or another Postgres), Pinecone, OpenRouter — see environment table below.
+- Optional: **Docker** if you prefer `docker-compose` instead of a local venv.
 
 ---
 
-## ✨ Features
+## Environment variables
 
-- `GraveyardWrapper` Python decorator — wrap any agent function and failure capture happens automatically, no manual logging needed
-- Every captured failure is passed through a LangGraph synthesis pipeline that structures it into a reusable incident: what failed, why, and what to watch out for next time
-- Pre-task wisdom injection — before any agent run, the system queries Pinecone by semantic similarity to the current task and prepends relevant past warnings directly into the prompt context
-- Shared community memory — seed data pre-populates the graveyard with common agent failure patterns so new agents benefit from day one, not just after their own failures
-- Terminal CLI with colored Rich logs: `health`, `overview`, `recent`, `wisdom` commands for visibility into the memory store without touching the API directly
-- Full Docker Compose setup — one command brings up the entire backend stack
-- SDK designed for drop-in integration — add `@graveyard.watch` to any existing agent function, nothing else changes
+Copy `backend/.env.example` to `backend/.env` and fill in values.
 
----
-
-## 🪦 Agents Fail the Same Way, Over and Over — Until Now
-
-The frustrating thing about agent failures is they're not random. Agents hit the same walls repeatedly — same tool call timing out, same prompt structure confusing the model, same edge case in the data. Every framework gives you logs. None of them give you memory. AgentGraveyard is that memory layer — a persistent, queryable, self-updating record of everything that's gone wrong, injected back into the agent before it tries again.
-
----
-
-## 🔧 Process
-
-The idea started from watching agents in development hit the same failure three times in a row during a single session. The logs were there but the agent had no way to use them. The fix needed to be invisible — you shouldn't have to restructure your agent to get failure memory, you should just wrap it.
-
-The SDK decorator was the first piece. `@graveyard.watch` intercepts the function's execution, catches any exception, packages the task context and error into a structured payload, and ships it to the backend without the agent code knowing anything happened. That invisibility was the design constraint everything else was built around.
-
-The backend synthesis pipeline uses LangGraph to turn raw error payloads into structured incidents. A raw exception trace is useless as memory — it's too specific. The pipeline extracts the general failure pattern: what class of task was being attempted, what went wrong at a conceptual level, and what a future agent should check before trying something similar. That structured output is what gets embedded and stored in Pinecone.
-
-The wisdom injection was the hardest piece to get right. The query has to be semantic — you're not looking for the exact same task, you're looking for tasks similar enough that the past failure is relevant. Local BGE embeddings handle this without an API call, keeping latency low enough that the pre-task check doesn't noticeably slow down agent execution.
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | SQL store (`postgresql+psycopg://…` for Neon; `sslmode=require` in query string) |
+| `NEON_DATABASE_URL` | Optional alias; backend accepts this instead of `DATABASE_URL` |
+| `OPENROUTER_API_KEY` | LLM calls (coroner, synthesis) |
+| `OPENROUTER_MODEL` | e.g. `openai/gpt-4o-mini` |
+| `OPENROUTER_BASE_URL` | Default `https://openrouter.ai/api/v1` |
+| `PINECONE_API_KEY` / `PINECONE_INDEX_NAME` / `PINECONE_ENVIRONMENT` | Vector index (serverless region) |
+| `EMBEDDING_MODEL` | Default `BAAI/bge-base-en-v1.5` (local, no embedding API cost) |
+| `EMBEDDING_DIM` | `768` for BGE base |
+| `SECRET_KEY` | App secret for signing/hashing as implemented by the backend |
+| `BACKEND_URL` | Used by clients pointing at this API (often `http://localhost:8000`) |
 
 ---
 
-## 📚 What I Learned
-
-- **AI agent reliability patterns** — how to think about failure modes in agentic systems as data, not just errors to catch and ignore
-- **LangGraph for synthesis pipelines** — using LangGraph not for multi-agent orchestration but as a structured processing pipeline for transforming raw failure data into structured memory
-- **Semantic retrieval with local embeddings** — running BAAI/bge-base-en-v1.5 locally for embedding generation so vector queries don't require an external API call on every agent run
-- **Python SDK design** — building a decorator-based SDK that integrates invisibly into existing code without requiring any restructuring of the host application
-- **Pinecone namespacing** — separating community shared memory from per-agent private memory using namespaces so both can be queried in the same retrieval call
-- **Docker multi-service orchestration** — composing FastAPI backend, vector store client, and embedding model into a single `docker-compose up` stack
-
----
-
-## 🌱 Overall Growth
-
-AgentGraveyard pushed me to think about AI systems from a reliability and observability angle rather than just a capability angle. Most agent projects focus on what the agent can do. This one focuses on what happens when it can't — and how to make sure it doesn't fail the same way twice. That shift in perspective, from building features to building resilience, is something I'll carry into every agentic system I work on going forward.
-
----
-
-## 🚀 Running the Project
+## Quick start
 
 ```bash
 git clone https://github.com/SarthakKala/AgentGraveyard.git
 cd AgentGraveyard
+python -m venv .venv
+# Windows: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 
-# Start the backend
-cd backend
-python -m uvicorn main:app --reload --port 8000
+pip install -r backend/requirements.txt
+pip install -e ./sdk
 
-# Seed shared community memory (from project root)
+cp backend/.env.example backend/.env
+# Edit backend/.env with your keys and Neon URL
+
+cd backend && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+In another terminal (venv active), from the **repository root**:
+
+```bash
 python seed_data/seed.py --force
+graveyard doctor --backend-url http://127.0.0.1:8000
+graveyard recent --backend-url http://127.0.0.1:8000 --api-key community --limit 5
+python scripts/verify_setup.py
+```
 
-# Use the SDK in your agent code
-from sdk.agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
+**CLI detail:** `--backend-url` and `--json` work **either** before **or** after the subcommand (e.g. `graveyard doctor --backend-url http://127.0.0.1:8000` and `graveyard --backend-url http://127.0.0.1:8000 doctor` are both valid).
+
+Docker alternative:
+
+```bash
+docker-compose up --build
+```
+
+---
+
+## Verification checklist
+
+Use this after any fresh clone or env change.
+
+1. **Backend up:** `GET /health` returns `"status": "ok"` (database + Pinecone both passing).
+2. **`graveyard doctor`** shows green checks; if **degraded**, fix Pinecone env vars; if **unhealthy**, fix `DATABASE_URL`.
+3. **Seed:** `python seed_data/seed.py --force` so SQL + Pinecone have community examples.
+4. **Data visible:** `graveyard recent --backend-url … --api-key community` lists rows.
+5. **Wisdom:** `graveyard wisdom --backend-url … --api-key community --task "rate limit API"` should eventually show non-zero confidence once vectors exist and the query matches.
+6. **Demos:** run scripts under `demo/` (see below).
+
+Automated smoke test (backend must already be running):
+
+```bash
+python scripts/verify_setup.py --api-key community
+```
+
+Optional Makefile shortcuts (Git Bash / WSL / macOS): `make install-sdk`, `make seed`, `make verify`.
+
+---
+
+## Terminal CLI (`graveyard`)
+
+Install the SDK (`pip install -e ./sdk`) to get the `graveyard` command.
+
+| Command | Description |
+|---------|-------------|
+| `graveyard health` | Compact status + DB/Pinecone checks |
+| `graveyard doctor` | Same as health plus remediation hints |
+| `graveyard overview --api-key KEY` | Analytics JSON (pretty-printed) |
+| `graveyard recent --api-key KEY` | Table of recent failures |
+| `graveyard wisdom --api-key KEY --task "…"` | Wisdom panel + confidence |
+
+Add `--json` for scripting (`graveyard --json health`).
+
+---
+
+## SDK usage (minimal)
+
+After `pip install -e ./sdk`, import the package by name:
+
+```python
+from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
 
 graveyard = GraveyardWrapper(
-    api_key="your-api-key",
+    api_key="your-api-key-or-hash",
     backend_url="http://localhost:8000",
     verbose=True,
 )
@@ -92,26 +123,77 @@ def run_agent(task: str):
     wisdom = get_wisdom_prompt_prefix()
     if wisdom:
         print("Wisdom injected:\n", wisdom)
-    # your agent logic here
     return "ok"
 ```
 
-Or bring up the full stack with Docker:
+More examples: `sdk/README.md` and `demo/*.py`.
 
-```bash
-docker-compose up --build
-```
+---
 
-**Terminal CLI commands:**
-```bash
-graveyard health --backend-url http://localhost:8000
-graveyard overview --backend-url http://localhost:8000 --api-key community
-graveyard recent --backend-url http://localhost:8000 --api-key community --limit 10
-graveyard wisdom --backend-url http://localhost:8000 --api-key community --task "scrape dynamic prices"
-```
+## Demo scripts
 
-<!--
+| Script | What it exercises |
+|--------|-------------------|
+| `demo/demo_agent.py` | Wrapped agent + failure path |
+| `demo/demo_success_only.py` | Success-only run |
+| `demo/demo_failure_only.py` | Forces failure → coroner pipeline |
+| `demo/demo_async_agent.py` | `watch_async` |
+| `demo/demo_wisdom_query.py` | Direct wisdom API via client |
 
-## 🎥 Video
+Run from repo root with venv active and `PYTHONPATH` including the repo (demos add the repo root to `sys.path` where needed).
 
-Attach your demo video here -->
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---------|----------------|
+| `confidence_score` 0 and empty `similar_failures` | No seed data or Pinecone mismatch; run seed script; confirm same embedding model/dimension as stored vectors |
+| `graveyard` not found | Run `pip install -e ./sdk` inside your venv |
+| `unrecognized arguments: --backend-url` | Reinstall the SDK (`pip install -e ./sdk`); older builds only accepted `--backend-url` before the subcommand |
+| Postgres connection drops | Pool recycle/pre-ping are configured; check Neon idle timeouts and firewall |
+| Wisdom slow first time | Local BGE model downloads on first embedding pass |
+
+---
+
+## Technologies
+
+- Python (SDK + backend), FastAPI, LangGraph, SQLAlchemy, Pinecone, **local** `BAAI/bge-base-en-v1.5` embeddings (768-d), OpenRouter (LLM), Docker Compose, Rich (terminal).
+
+---
+
+## Features
+
+- `GraveyardWrapper` decorator for automatic failure capture and reporting.
+- LangGraph pipeline for structuring incidents; embeddings stored in Pinecone.
+- Pre-task wisdom injection via semantic similarity.
+- Community seed data for shared failure patterns.
+- Rich terminal logging and the `graveyard` CLI.
+- `GET /health` reports **database** and **Pinecone** status for operations and scripts.
+
+---
+
+## Process (design)
+
+The SDK decorator was designed to be low-friction: wrap a function, and failures are sent to the backend without restructuring your agent. The backend turns raw traces into reusable patterns. Wisdom retrieval uses local embeddings to avoid paid embedding APIs on every request.
+
+---
+
+## What we learned
+
+- Failure modes as structured data, not one-off logs.
+- LangGraph as an enrichment pipeline (not only multi-agent orchestration).
+- Local embeddings for latency and cost control on retrieval-heavy paths.
+- Decorator-based SDK integration.
+
+---
+
+## Growth
+
+Building Agent Graveyard emphasizes **reliability and memory** in agentic systems: not only what the model can do, but how it recovers and avoids repeating the same mistake.
+
+---
+
+## Optional: demo video
+
+<!-- Attach your demo video here -->
