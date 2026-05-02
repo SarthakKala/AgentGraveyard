@@ -94,7 +94,8 @@ Write-Host ""
 Write-Host "================================"
 Write-Host "Setup complete!"
 Write-Host ""
-Write-Host "Starting backend on http://localhost:8000 ..."
+Write-Host "Starting backend (listening on 127.0.0.1:8000)."
+Write-Host "  In your browser use: http://localhost:8000/health  (not 0.0.0.0 — that is not a valid browser URL)"
 Write-Host "Press Ctrl+C to stop."
 Write-Host ""
 Write-Host "In a NEW PowerShell window:"
@@ -104,4 +105,4 @@ Write-Host "================================"
 Write-Host ""
 
 Set-Location backend
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload

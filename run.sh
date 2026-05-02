@@ -75,7 +75,8 @@ echo ""
 echo "================================"
 echo "✅  Setup complete!"
 echo ""
-echo "Starting backend on http://localhost:8000 ..."
+echo "Starting backend (listening on 127.0.0.1:8000)."
+echo "  In your browser use: http://localhost:8000/health  (not 0.0.0.0 — that is not a valid browser URL)"
 echo "Press Ctrl+C to stop."
 echo ""
 echo "In a NEW terminal tab, run:"
@@ -84,4 +85,4 @@ echo "  python demo/demo_agent.py"
 echo "================================"
 echo ""
 
-cd backend && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+cd backend && exec uvicorn main:app --host 127.0.0.1 --port 8000 --reload

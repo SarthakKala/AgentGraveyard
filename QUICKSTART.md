@@ -145,6 +145,9 @@ If your function has **multiple positional parameters**, pass the human-readable
 **`Connection refused` on port 8000**  
 → The backend is not running. Start it with `bash run.sh` or `cd backend && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000`.
 
+**`ERR_ADDRESS_INVALID` / “can’t reach” `http://0.0.0.0:8000`**  
+→ **`0.0.0.0` is a bind/listen address for the server, not a URL you open in a browser.** Always use **`http://localhost:8000`** or **`http://127.0.0.1:8000`** (e.g. **`/health`**). `run.sh` / `run.ps1` listen on **`127.0.0.1`** so Uvicorn’s log matches that. Docker Compose still uses `0.0.0.0` inside the container; on your machine you still browse **`http://localhost:8000`**.
+
 **`PineconeApiKeyError` / Pinecone errors**  
 → Check your `PINECONE_API_KEY` in `backend/.env`.
 
