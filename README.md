@@ -1,205 +1,99 @@
-# 🪦 Agent Graveyard
+# AgentGraveyard
 
-> Self-healing failure memory for AI agents.  
-> When your agent fails, it learns. Forever.
+*"Every agent that fails before yours already knew the answer. AgentGraveyard makes sure yours inherits it."*
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![OpenRouter](https://img.shields.io/badge/LLM-OpenRouter-orange.svg)](https://openrouter.ai)
-[![Pinecone](https://img.shields.io/badge/VectorDB-Pinecone-purple.svg)](https://pinecone.io)
+AgentGraveyard is a self-healing failure memory system for AI agents. When your agent fails, a Coroner Agent diagnoses what went wrong, pulls lessons from similar past failures, and stores a synthesized strategy. The next agent running a similar task gets that knowledge handed to it before it even starts, not raw logs, but a distilled lesson it can actually use.
 
 ---
 
-Most AI agents have a fatal flaw. When they fail, the failure disappears.
+## 🛠️ Technologies
 
-You debug it. You fix it. You move on. Two weeks later, a different agent makes the exact same mistake.
-
-**Agent Graveyard fixes this.**
-
-When your agent fails, a **Coroner Agent** automatically diagnoses what went wrong, synthesizes a solution from similar past failures, and stores the lesson in a vector database. Every future agent queries this collective memory before it starts — inheriting the knowledge of every failure that came before it.
-
-The integration is **a few lines of code** added to your existing agent:
-
-```python
-from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
-
-graveyard = GraveyardWrapper(
-    api_key="community",
-    backend_url="http://localhost:8000",
-    verbose=True,
-)
-
-@graveyard.watch                    # ← wrap your function
-def my_agent(task: str) -> str:     # your existing function
-    wisdom = get_wisdom_prompt_prefix()   # optional: injected wisdom
-    # rest of your agent code here
-    ...
-```
+- Python + FastAPI (Backend)
+- PostgreSQL via Neon (Structured storage)
+- Pinecone (Vector search)
+- sentence-transformers (Local embeddings — no paid API)
+- OpenRouter (LLM for lesson synthesis)
+- Python SDK with Rich terminal output
+- Docker + Docker Compose
 
 ---
 
-## What You See In Your Terminal
+## ✨ Features
 
-With **`verbose=True`**, the SDK uses **Rich** for colored output — wisdom scans, failures, coroner/self-heal messages, and success lines. Exact wording depends on your backend configuration and whether similar failures exist in the graveyard.
-
-Example flavor:
-
-```
-[AgentGraveyard] Pre-task wisdom scan...
-[AgentGraveyard] No warnings found.
-[AgentGraveyard] Agent FAILED: ValueError — ...
-[AgentGraveyard] Coroner Agent diagnosing...
-```
+- Wrap any existing agent function with one decorator — nothing else in your code changes
+- Before every task, the agent gets a wisdom briefing pulled from semantically similar past failures
+- On failure, a Coroner Agent classifies what went wrong, retrieves similar incidents, and synthesizes a single actionable lesson
+- Confidence scores are similarity-driven and they reflect actual retrieval quality, not made-up percentages
+- CLI to query wisdom, inspect recent failures, and check system health
+- Pre-seeded with hundreds of real AI agent failure patterns out of the box so new agents benefit from day one
 
 ---
 
-## Quick Start
+## 🪦 The Problem Nobody Actually Fixes
 
-→ **See [QUICKSTART.md](QUICKSTART.md) for full step-by-step setup.**
+Every AI agent tutorial shows you how to build one. None of them show you what happens when it fails. You debug it, fix it, move on and two weeks later a different agent makes the exact same mistake. Agent Graveyard fixes that. Persistent, semantic failure memory so agents stop starting from zero every time.
+
+---
+
+## 🔧 Process
+
+The hard part wasn't storing failures, it was making them queryable in a way that actually helps. Every failure gets structured as a document with a task, error category, lesson, and suggested fix, then embedded as a vector. When a new failure comes in, the Coroner pulls the most similar past incidents, feeds them to an LLM, and stores one synthesized strategy. Future agents get that output and not a wall of raw logs.
+
+The SDK wrapper was designed around a single constraint: add one decorator to a function you already have, and nothing else changes. The rest: wisdom query, event logging, Coroner trigger — happens entirely in the background. The caller never touches it.
+
+The trickiest part was getting the synthesis prompt right. Multiple past failures often contradict each other: one says "retry immediately", another says "back off and wait". The prompt had to force the LLM to produce one coherent, actionable lesson from conflicting inputs consistently. That took significant iteration.
+
+---
+
+## 📚 What I Learned
+
+- **Vector search for failure memory** — how to structure failure documents so semantic search retrieves the right past incidents, not just lexically similar ones
+- **LLM synthesis prompts** — how to get consistent, actionable output from an LLM when the input is multiple conflicting past lessons
+- **Python SDK design** — how to wrap existing sync and async functions transparently with one decorator, without the caller changing anything
+- **FastAPI + SQLAlchemy** — building a real async backend with WebSocket broadcast, database sessions, and proper route separation
+- **Retry logic for LLM APIs** — handling rate limits, backoff strategies, Retry-After headers, and surfacing clean errors when retries are exhausted
+
+---
+
+## 🌱 Overall Growth
+
+This was the first project where I designed the entire intelligence layer myself, not just calling an API, but deciding how failures get stored, retrieved, classified, and turned into something useful. A raw database of errors is useless. The structure, the semantic search, and the synthesis step are what make it actually work. That distinction between storing data and making data actionable is something I'll carry into every AI system I build going forward.
+
+---
+
+## 🚀 Running the Project
+
+You need free accounts at [Pinecone](https://pinecone.io), [OpenRouter](https://openrouter.ai), and [Neon](https://neon.tech).
 
 ```bash
 git clone https://github.com/SarthakKala/AgentGraveyard.git
 cd AgentGraveyard
+
 cp backend/.env.example backend/.env
-# fill in your API keys (Pinecone + OpenRouter + Neon — all free)
+# Fill in your Pinecone, OpenRouter, and Neon keys
+```
+
+**Linux / macOS / Git Bash:**
+```bash
 bash run.sh
-# new terminal → python demo/demo_agent.py
 ```
 
----
-
-## How It Works
-
-```
-Your agent starts a task
-         ↓
-Queries graveyard for similar past failures (embeddings + Pinecone)
-         ↓
-Wisdom can be injected into agent context before it runs
-         ↓
-Agent runs with inherited knowledge
-         ↓
-       SUCCESS?
-      ↙        ↘
-    YES          NO
-     ↓            ↓
- Log success   Coroner diagnoses WHY it failed
-               → Classifies: TOOL / PROMPT / DATA / ENV / REASONING
-               → Retrieves similar past failures
-               → Synthesizes guidance via LLM (OpenRouter)
-               → Self-heal path when enabled
-               → Stores structured outcome (Postgres + vectors)
-         ↓
- Graveyard improves with every recorded failure
+**Windows PowerShell:**
+```powershell
+.\run.ps1
 ```
 
-### Why This Is Not Just "A Database With Embeddings"
-
-The naive version: store failure → query → return a canned answer.
-
-Agent Graveyard **structures** failures, **retrieves** semantically similar incidents, and uses the **LLM** to synthesize guidance grounded in past lessons — combining multiple signals instead of simple autocomplete.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│  Your Agent Code                            │
-│  @graveyard.watch                           │
-└──────────────┬──────────────────────────────┘
-               │ HTTP / WebSocket
-┌──────────────▼──────────────────────────────┐
-│  Agent Graveyard Backend (FastAPI)          │
-│  ┌─────────────┐  ┌──────────────────────┐  │
-│  │ Coroner     │  │ Self-Healer          │  │
-│  │ pipeline    │  │                      │  │
-│  └──────┬──────┘  └──────────────────────┘  │
-│         │                                   │
-│  ┌──────▼──────────────────────────────┐    │
-│  │ Local Embeddings                    │    │
-│  │ (BAAI/bge-base-en-v1.5, local GPU/CPU)   │
-│  └──────┬──────────────────────────────┘    │
-└─────────┼───────────────────────────────────┘
-          │
-    ┌─────┴──────┐
-    │            │
-┌───▼───┐  ┌────▼────┐
-│Pinecone│  │Postgres │
-│Vectors │  │(Neon)   │
-└────────┘  └─────────┘
-```
-
-**Key design decision: embeddings are local.**  
-We use `sentence-transformers` with `BAAI/bge-base-en-v1.5` — runs on your machine, no paid embedding API.
-
-**LLM via OpenRouter.**  
-Default in `.env.example`: `mistralai/mistral-7b-instruct:free` — free tier friendly.
-
----
-
-## CLI
+The script sets everything up and starts the backend on http://localhost:8000. The first run downloads a ~400MB embedding model once and caches it. Then in a second terminal:
 
 ```bash
-graveyard --backend-url http://localhost:8000 health
-graveyard --backend-url http://localhost:8000 doctor
-graveyard overview --backend-url http://localhost:8000 --api-key community
-graveyard recent --backend-url http://localhost:8000 --api-key community
-graveyard wisdom --backend-url http://localhost:8000 --api-key community --task "your task description"
+source .venv/bin/activate
+python demo/demo_agent.py
 ```
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| SDK | Python, Rich, httpx, websockets |
-| Backend | FastAPI, SQLAlchemy |
-| Database | PostgreSQL (Neon) or SQLite |
-| Vector DB | Pinecone (free tier) |
-| Embeddings | `sentence-transformers` — **local** |
-| LLM | OpenRouter — free models available |
-| Containerization | Docker + Docker Compose |
-
----
-
-## SQLite vs Postgres (concurrency)
-
-SQLite allows **one writer at a time**. Multiple concurrent agents or several FastAPI workers hitting the same SQLite file can produce **database is locked** errors or stalled writes. **Neon (Postgres)** is the better default for demos that involve concurrent SDK traffic or `uvicorn --workers` greater than one.
-
-Practical guidance:
-
-- **Toy single-agent demos on one machine:** SQLite is fine if you run **one backend process** (`workers=1`).
-- **Anything with concurrent clients or production-ish load:** use **Postgres** (see `DATABASE_URL` in `backend/.env.example`) and keep the backend to a single worker only if you deliberately accept SQLite limits.
-
----
-
-## Roadmap / deferred work
-
-The following are **not** in the current reliability pass but are reasonable follow-ups:
-
-- **Deduplication:** merge or bump counts when the same failure signature appears repeatedly (e.g. hash of normalized error + similar task embedding).
-- **Pinecone metadata size:** truncate long `lesson` / `suggested_approach` fields before upsert so metadata stays within provider limits; keep full text in Postgres.
-
----
-
-## Pre-Seeded Community Failures
-
-On first run, `seed_data/seed.py` loads **`seed_data/common_failures.json`** (large curated set) into Postgres and Pinecone so wisdom retrieval has data to match. You get immediate signal before your own agents fail.
-
----
-
-## Contributing Failures
-
-Add real failures to `seed_data/common_failures.json` using the shape described in that file (task, error, lesson, category, etc.). Optional: `source_citations` for URLs.
+Full step-by-step setup: see [QUICKSTART.md](QUICKSTART.md)
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-*Built for agents that should learn from every mistake.*
+MIT — see [LICENSE](LICENSE)
