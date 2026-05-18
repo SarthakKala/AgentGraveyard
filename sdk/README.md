@@ -14,6 +14,8 @@ This exposes the `graveyard` console script.
 
 ## Quick integration
 
+Pass the **raw** API key (from `/api/sdk/register` or the demo value `community`). The SDK hashes it before every request.
+
 ```python
 from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
 

@@ -1,15 +1,23 @@
+"""
+Async agent with @graveyard.watch_async.
+
+  python demo/demo_async_agent.py
+"""
+
 import asyncio
+import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "sdk"))
 
-from sdk.agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
+from agentgraveyard import GraveyardWrapper, get_wisdom_prompt_prefix
 
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 graveyard = GraveyardWrapper(
     api_key="community",
-    backend_url="http://localhost:8000",
+    backend_url=BACKEND_URL,
     verbose=True,
 )
 

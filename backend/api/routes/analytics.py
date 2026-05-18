@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from core.time_util import utc_now
 from db.database import get_db
 from db.models import FailureMemory, SuccessMemory
 
@@ -33,7 +34,7 @@ def overview(api_key_hash: str, db: Session = Depends(get_db)):
         .order_by(func.count(FailureMemory.id).desc())
         .first()
     )
-    week_start = datetime.utcnow() - timedelta(days=7)
+    week_start = utc_now() - timedelta(days=7)
     failures_this_week = (
         db.query(FailureMemory)
         .filter(FailureMemory.api_key_hash == api_key_hash, FailureMemory.created_at >= week_start)
@@ -63,7 +64,7 @@ def failure_categories(api_key_hash: str, db: Session = Depends(get_db)):
 
 @router.get("/timeline")
 def timeline(api_key_hash: str, db: Session = Depends(get_db)):
-    start = datetime.utcnow() - timedelta(days=30)
+    start = utc_now() - timedelta(days=30)
     rows = (
         db.query(func.date(FailureMemory.created_at).label("day"), func.count(FailureMemory.id))
         .filter(FailureMemory.api_key_hash == api_key_hash, FailureMemory.created_at >= start)

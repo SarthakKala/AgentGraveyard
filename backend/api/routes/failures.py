@@ -32,7 +32,24 @@ def get_failures(
 
 @router.get("/community")
 def get_community_failures(db: Session = Depends(get_db)):
-    return db.query(FailureMemory).filter(FailureMemory.is_community_shared.is_(True)).all()
+    rows = (
+        db.query(FailureMemory)
+        .filter(FailureMemory.is_community_shared.is_(True))
+        .order_by(FailureMemory.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "agent_name": row.agent_name,
+            "task_description": row.task_description,
+            "is_community_shared": bool(row.is_community_shared),
+            "failure_category": row.failure_category,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/{failure_id}")

@@ -7,6 +7,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from .identity import api_key_hash
+
 
 def _api(base_url: str, path: str) -> str:
     return f"{base_url.rstrip('/')}{path}"
@@ -96,10 +98,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def cmd_overview(args: argparse.Namespace) -> int:
+    key_hash = api_key_hash(args.api_key)
     try:
         r = httpx.get(
             _api(args.backend_url, "/api/analytics/overview"),
-            params={"api_key_hash": args.api_key},
+            params={"api_key_hash": key_hash},
             timeout=20.0,
         )
         r.raise_for_status()
@@ -116,10 +119,11 @@ def cmd_overview(args: argparse.Namespace) -> int:
 
 
 def cmd_recent(args: argparse.Namespace) -> int:
+    key_hash = api_key_hash(args.api_key)
     try:
         r = httpx.get(
             _api(args.backend_url, "/api/failures"),
-            params={"api_key_hash": args.api_key, "page": 1, "page_size": args.limit},
+            params={"api_key_hash": key_hash, "page": 1, "page_size": args.limit},
             timeout=20.0,
         )
         r.raise_for_status()
@@ -155,10 +159,11 @@ def cmd_recent(args: argparse.Namespace) -> int:
 
 
 def cmd_wisdom(args: argparse.Namespace) -> int:
+    key_hash = api_key_hash(args.api_key)
     try:
         r = httpx.get(
             _api(args.backend_url, "/api/sdk/wisdom"),
-            params={"task": args.task, "api_key_hash": args.api_key},
+            params={"task": args.task, "api_key_hash": key_hash},
             timeout=25.0,
         )
         r.raise_for_status()
@@ -256,16 +261,16 @@ def build_parser() -> argparse.ArgumentParser:
     d.set_defaults(func=cmd_doctor)
 
     o = sub.add_parser("overview", parents=[shared], help="Analytics overview for an API key")
-    o.add_argument("--api-key", required=True, metavar="KEY", help="api_key_hash (e.g. community for seeded data)")
+    o.add_argument("--api-key", required=True, metavar="KEY", help="raw API key (e.g. community for seeded data)")
     o.set_defaults(func=cmd_overview)
 
     r = sub.add_parser("recent", parents=[shared], help="List recent stored failures")
-    r.add_argument("--api-key", required=True, metavar="KEY", help="api_key_hash")
+    r.add_argument("--api-key", required=True, metavar="KEY", help="raw API key")
     r.add_argument("--limit", type=int, default=10, help="Max rows (backend max 100, default: %(default)s)")
     r.set_defaults(func=cmd_recent)
 
     w = sub.add_parser("wisdom", parents=[shared], help="Semantic wisdom lookup for a task string")
-    w.add_argument("--api-key", required=True, metavar="KEY", help="api_key_hash")
+    w.add_argument("--api-key", required=True, metavar="KEY", help="raw API key")
     w.add_argument("--task", required=True, help="Task description to evaluate")
     w.set_defaults(func=cmd_wisdom)
 

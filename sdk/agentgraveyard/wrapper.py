@@ -1,10 +1,10 @@
-import asyncio
 import functools
 import time
 import uuid
 import warnings
 from typing import Any, Callable
 
+from .async_util import run_coro_sync
 from .client import GraveyardClient
 from .context import clear_wisdom, get_wisdom, set_wisdom
 from .logger import GraveyardLogger
@@ -62,7 +62,7 @@ class GraveyardWrapper:
             session_id = str(uuid.uuid4())
             task_description = self._resolve_task_description(func, args, kwargs)
             self.logger.log_wisdom_scan()
-            wisdom = asyncio.run(self.client.query_wisdom(str(task_description)))
+            wisdom = run_coro_sync(self.client.query_wisdom(str(task_description)))
             wisdom_payload = wisdom.get("wisdom", {})
             if wisdom_payload.get("has_warnings"):
                 set_wisdom(wisdom.get("prompt_prefix", ""))
@@ -73,7 +73,7 @@ class GraveyardWrapper:
             else:
                 clear_wisdom()
                 self.logger.log_no_warnings()
-            asyncio.run(
+            run_coro_sync(
                 self.client.send_event(
                     "TASK_START",
                     func.__name__,
@@ -85,7 +85,7 @@ class GraveyardWrapper:
             try:
                 result = func(*args, **kwargs)
                 elapsed = int((time.perf_counter() - started) * 1000)
-                asyncio.run(
+                run_coro_sync(
                     self.client.send_event(
                         "TASK_SUCCESS",
                         func.__name__,
@@ -98,7 +98,7 @@ class GraveyardWrapper:
             except Exception as exc:
                 self.logger.log_agent_failure(type(exc).__name__, str(exc))
                 self.logger.log_coroner_started()
-                asyncio.run(
+                run_coro_sync(
                     self.client.send_event(
                         "TASK_FAILURE",
                         func.__name__,

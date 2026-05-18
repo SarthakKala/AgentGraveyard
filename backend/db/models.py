@@ -4,6 +4,8 @@ from datetime import datetime
 from sqlalchemy import JSON, Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from core.time_util import utc_now
+
 from .database import Base
 
 
@@ -34,8 +36,8 @@ class FailureMemory(Base):
     agent_name: Mapped[str] = mapped_column(String, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=False, index=True)
     is_community_shared: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class SuccessMemory(Base):
@@ -49,7 +51,7 @@ class SuccessMemory(Base):
     approach_used: Mapped[str] = mapped_column(Text, default="")
     execution_time_ms: Mapped[int] = mapped_column(Integer, default=0)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class AgentSession(Base):
@@ -59,7 +61,7 @@ class AgentSession(Base):
     agent_name: Mapped[str] = mapped_column(String, nullable=False)
     task_description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="RUNNING")
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=False, index=True)
     failure_id: Mapped[str | None] = mapped_column(String, nullable=True)

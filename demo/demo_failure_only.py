@@ -1,14 +1,23 @@
+"""
+Single failure → coroner (LangGraph) + self-heal bookkeeping.
+Uses share_with_community=True to test community persistence.
+
+  python demo/demo_failure_only.py
+"""
+
+import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "sdk"))
 
-from sdk.agentgraveyard import GraveyardWrapper
+from agentgraveyard import GraveyardWrapper
 
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 graveyard = GraveyardWrapper(
     api_key="community",
-    backend_url="http://localhost:8000",
+    backend_url=BACKEND_URL,
     verbose=True,
     share_with_community=True,
 )

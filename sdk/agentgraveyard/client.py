@@ -1,15 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 import uuid
 
 import httpx
+
+from .identity import api_key_hash as hash_api_key
 
 
 class GraveyardClient:
     def __init__(self, api_key: str, backend_url: str):
         self.api_key = api_key
         self.backend_url = backend_url.rstrip("/")
-        self.api_key_hash = api_key
+        self.api_key_hash = hash_api_key(api_key)
 
     async def query_wisdom(self, task_description: str) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -27,7 +29,7 @@ class GraveyardClient:
             "agent_name": agent_name,
             "task_description": task_description,
             "api_key_hash": self.api_key_hash,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "payload": payload,
         }
         async with httpx.AsyncClient(timeout=30.0) as client:

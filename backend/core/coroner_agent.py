@@ -20,6 +20,7 @@ class CornerState(TypedDict, total=False):
     tools_attempted: list[str]
     agent_name: str
     api_key_hash: str
+    share_with_community: bool
     failure_category: str
     failure_reason: str
     failure_point: str
@@ -98,6 +99,7 @@ def synthesize_solution_node(state: CornerState) -> CornerState:
 def store_failure_node(state: CornerState, db: Session) -> CornerState:
     failure_id = str(uuid.uuid4())
     embedding = generate_embedding(f"{state['task_description']}\n{state['failure_reason']}")
+    community_shared = bool(state.get("share_with_community", False))
     metadata = {
         "failure_reason": state["failure_reason"],
         "lesson": state["lesson"],
@@ -105,7 +107,7 @@ def store_failure_node(state: CornerState, db: Session) -> CornerState:
         "suggested_approach": state["suggested_approach"],
         "agent_name": state["agent_name"],
         "api_key_hash": state["api_key_hash"],
-        "is_community_shared": False,
+        "is_community_shared": community_shared,
         "times_occurred": 1,
     }
     upsert_failure_memory(failure_id=failure_id, embedding=embedding, metadata=metadata)
@@ -124,6 +126,7 @@ def store_failure_node(state: CornerState, db: Session) -> CornerState:
         embedding_id=failure_id,
         agent_name=state["agent_name"],
         api_key_hash=state["api_key_hash"],
+        is_community_shared=community_shared,
     )
     db.add(failure)
     db.commit()
@@ -139,18 +142,18 @@ async def run_coroner(
     agent_name: str,
     api_key_hash: str,
     db: Session,
+    share_with_community: bool = False,
 ) -> CornerState:
-    state: CornerState = {
+    from agents.graph import build_agent_graph
+
+    initial: CornerState = {
         "task_description": task_description,
         "error_message": error_message,
         "error_type": error_type,
         "tools_attempted": tools_attempted,
         "agent_name": agent_name,
         "api_key_hash": api_key_hash,
+        "share_with_community": share_with_community,
     }
-    state = classify_failure_node(state)
-    state = diagnose_failure_node(state)
-    state = query_graveyard_node(state)
-    state = synthesize_solution_node(state)
-    state = store_failure_node(state, db)
-    return state
+    graph = build_agent_graph(db)
+    return graph.invoke(initial)

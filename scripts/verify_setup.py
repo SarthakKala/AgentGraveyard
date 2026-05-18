@@ -10,14 +10,19 @@ Run from repository root with the backend already started.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
+
+
+def _api_key_hash(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.strip().encode()).hexdigest()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify Agent Graveyard backend connectivity.")
     parser.add_argument("--backend-url", default="http://localhost:8000", help="API base URL")
-    parser.add_argument("--api-key", default="community", help="api_key_hash for overview probe")
+    parser.add_argument("--api-key", default="community", help="raw API key for overview probe (hashed before request)")
     parser.add_argument("--json", action="store_true", help="Print machine-readable summary")
     args = parser.parse_args()
 
@@ -44,10 +49,11 @@ def main() -> int:
 
     out["steps"].append({"name": "health", "ok": True, "status": health.get("status"), "version": health.get("version")})
 
+    key_hash = _api_key_hash(args.api_key)
     try:
         r2 = httpx.get(
             f"{base}/api/analytics/overview",
-            params={"api_key_hash": args.api_key},
+            params={"api_key_hash": key_hash},
             timeout=20.0,
         )
         r2.raise_for_status()

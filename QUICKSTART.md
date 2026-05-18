@@ -99,11 +99,38 @@ python demo/demo_agent.py
 
 You will see the Agent Graveyard flow in your terminal (Rich-colored SDK logs when `verbose=True`).
 
+## Step 6 — Full E2E verification (recommended)
+
+Runs automated checks for health, API key hashing, wisdom API, sync wrapper inside `asyncio`, `share_with_community`, and `watch_async`:
+
+```bash
+python demo/demo_e2e.py
+```
+
+You want **all lines marked `[OK]`** and exit code `0`. Then optionally run the focused demos:
+
+| Script | What it exercises |
+|--------|-------------------|
+| `demo/demo_agent.py` | Full scrape failure + wisdom on second run |
+| `demo/demo_wisdom_query.py` | Wisdom API with readable output |
+| `demo/demo_failure_only.py` | Coroner + community share flag |
+| `demo/demo_success_only.py` | Success path only |
+| `demo/demo_async_agent.py` | `watch_async` |
+
+CLI smoke test (raw key `community` is hashed by the CLI):
+
+```bash
+graveyard doctor --backend-url http://localhost:8000
+python scripts/verify_setup.py
+```
+
+Open the API in a browser: **http://localhost:8000/health** (not `0.0.0.0`).
+
 ---
 
 ## Using The CLI
 
-Global flags can appear before or after the subcommand. Examples (community seed key):
+Global flags can appear before or after the subcommand. Use the **raw** API key (e.g. `community`); the CLI hashes it before requests. Examples:
 
 ```bash
 graveyard --backend-url http://localhost:8000 health

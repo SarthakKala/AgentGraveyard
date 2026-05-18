@@ -1,4 +1,3 @@
-from datetime import datetime
 import hashlib
 import uuid
 
@@ -7,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.coroner_agent import run_coroner
+from core.time_util import utc_now
 from core.self_healer import attempt_self_heal
 from core.wisdom_injector import format_wisdom_for_prompt, get_wisdom_briefing
 from db.database import get_db
@@ -71,7 +71,7 @@ async def ingest_event(event: SDKEvent, db: Session = Depends(get_db)):
         session = db.query(AgentSession).filter(AgentSession.id == event.session_id).first()
         if session:
             session.status = "SUCCESS"
-            session.ended_at = datetime.utcnow()
+            session.ended_at = utc_now()
         db.commit()
         await broadcast_event(
             event.api_key_hash,
@@ -93,6 +93,7 @@ async def ingest_event(event: SDKEvent, db: Session = Depends(get_db)):
             agent_name=event.agent_name,
             api_key_hash=event.api_key_hash,
             db=db,
+            share_with_community=bool(event.payload.get("share_with_community", False)),
         )
         heal = await attempt_self_heal(
             original_task=event.task_description,
